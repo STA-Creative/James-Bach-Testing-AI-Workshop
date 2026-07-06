@@ -151,3 +151,116 @@ Run a targeted dashboard/product reconnaissance session after login:
 - map the main modules and navigation,
 - identify risk hotspots,
 - decide which areas deserve deeper testing.
+
+---
+
+# Demo Explanation: Why The Agent Did What It Did
+
+This section is for explaining the work during the workshop discussion. The point is to show that the AI-assisted testing was not just generated automation. It has a traceable logic chain, evidence trail, and human evaluation step.
+
+## What We Tested
+
+We tested the OrangeHRM authentication and password-reset boundary.
+
+The first session covered:
+
+- blank login submission
+- invalid credentials
+- valid login
+- dashboard reload after login
+- direct dashboard access without login
+- logout followed by direct dashboard access
+
+The second session covered:
+
+- password reset page controls
+- blank reset submission
+- unknown username reset feedback
+- cancel navigation back to login
+
+## Why We Chose This Topic
+
+Authentication is a high-risk boundary. If it fails, users may be blocked, misled, or allowed into protected pages without a valid session.
+
+It also gives us observable evidence:
+
+- visible messages
+- URL transitions
+- redirects
+- screenshots
+- failed requests
+- console messages
+- visible controls
+
+That makes it a good Rapid Software Testing target: clear mission, clear risks, clear oracles, and defensible coverage.
+
+## How The AI Decided What To Do
+
+The reasoning chain was:
+
+1. Start with the RST mission: inform stakeholders about product risk.
+2. Pick a product area where failure matters: login, session, and recovery.
+3. Turn risks into questions:
+   - Can users submit missing credentials?
+   - Are wrong credentials rejected?
+   - Does valid login create a durable session?
+   - Are protected pages blocked without a session?
+   - Does logout actually remove access?
+   - Does password reset avoid account enumeration?
+4. Turn those questions into Playwright probes.
+5. Capture evidence through visible UI assertions, URL assertions, screenshots, console logs, failed requests, and HTTP response observations.
+6. Write a human-readable testing story with what passed, what remains unknown, and what deserves follow-up.
+
+## What Evidence We Collected
+
+Automated evidence:
+
+- `npm test` passed with `10 passed`.
+- Playwright screenshots were captured under `test-results`.
+- Console messages were collected.
+- Failed browser requests were collected.
+- HTTP responses `>= 400` were collected.
+- URL transitions were checked.
+- Visible UI text was checked.
+
+Human interpretation:
+
+- Blank login and blank reset showed required-field feedback.
+- Invalid login stayed on login and showed `Invalid credentials`.
+- Valid login reached dashboard and survived reload.
+- Direct dashboard access without login redirected to login.
+- Logout removed dashboard access.
+- Unknown username reset showed generic reset-sent feedback, which is privacy-preserving.
+- The `Admin` password-reset path appeared to stall under manual automation probing, so we recorded it as a follow-up observation, not a confirmed bug.
+
+## How We Evaluated The AI Output
+
+We did not trust the AI's first idea by default.
+
+We checked:
+
+- Did the selectors match the real page?
+- Did Playwright actually pass?
+- Did the page behavior support the claim?
+- Did browser signals contradict the claim?
+- Did any probe produce ambiguous evidence?
+- Did we distinguish confirmed observations from suspected issues?
+
+Example: the `Admin` reset path looked suspicious, but we did not call it a confirmed bug because the automation observation was not clean enough. That is the responsible-tester move.
+
+## What The AI Did Not Do
+
+The AI did not:
+
+- declare the product secure
+- claim complete coverage
+- hide ambiguous evidence
+- turn every observation into a bug
+- send or upload anything externally
+- rely only on generated text
+
+It created tools and notes, then we judged the evidence.
+
+## Short Workshop Summary
+
+I used AI as a testing assistant, not as the tester. We chose auth and session recovery because it is a high-risk boundary. The AI helped turn risks into probes, wrote Playwright checks, captured screenshots, console and network signals, and produced a session note. I can defend each check by linking it to a risk, an oracle, and collected evidence. Where evidence was ambiguous, like the `Admin` password-reset behavior, we recorded it as a follow-up observation instead of overclaiming a bug.
