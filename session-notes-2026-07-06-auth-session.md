@@ -264,3 +264,270 @@ It created tools and notes, then we judged the evidence.
 ## Short Workshop Summary
 
 I used AI as a testing assistant, not as the tester. We chose auth and session recovery because it is a high-risk boundary. The AI helped turn risks into probes, wrote Playwright checks, captured screenshots, console and network signals, and produced a session note. I can defend each check by linking it to a risk, an oracle, and collected evidence. Where evidence was ambiguous, like the `Admin` password-reset behavior, we recorded it as a follow-up observation instead of overclaiming a bug.
+
+---
+
+# Manual Verification Guide
+
+Use this section when demonstrating or reviewing what the automated checks actually did. The goal is to be able to defend the automation as testing evidence, not merely say that Playwright passed.
+
+Run the full suite in headed mode:
+
+```powershell
+cd E:\STAProjects\James-Bach-Testing-AI-Workshop
+npm run test:headed
+```
+
+Run one named check at a time:
+
+```powershell
+npx playwright test -g "invalid credentials" --headed
+```
+
+Replace the quoted phrase with part of the test name.
+
+## 1. Login Page Smoke
+
+Automated check:
+
+```text
+OrangeHRM login page exposes core login controls
+```
+
+What it does:
+
+- Opens the OrangeHRM login page.
+- Checks for the login heading.
+- Checks for the username field.
+- Checks for the password field.
+- Checks for the Login button.
+
+What to watch manually:
+
+- Does the page visibly load?
+- Are the main controls present and understandable?
+- Are there console messages or failed requests?
+
+Evidence meaning:
+
+- This is a basic availability and testability check. It tells us the starting surface is present enough to continue testing.
+
+## 2. Blank Login Submission
+
+Automated check:
+
+```text
+blank login submission explains required fields without leaving login page
+```
+
+What it does:
+
+- Opens the login page.
+- Clicks Login with both fields empty.
+- Expects two `Required` messages.
+- Expects the browser to remain on the login URL.
+
+What to watch manually:
+
+- Do both fields get clear feedback?
+- Does the app avoid submitting an empty login?
+- Does the user stay in a recoverable state?
+
+Evidence meaning:
+
+- Missing credentials are blocked locally and explained at the field level.
+
+## 3. Invalid Credentials
+
+Automated check:
+
+```text
+invalid credentials are rejected with a specific visible message
+```
+
+What it does:
+
+- Enters a fake username and password.
+- Clicks Login.
+- Expects `Invalid credentials`.
+- Expects the Login page to remain visible.
+
+What to watch manually:
+
+- Does the app reject the login?
+- Is the feedback visible and understandable?
+- Does it avoid navigating to the dashboard?
+
+Evidence meaning:
+
+- Wrong credentials fail closed and produce user-facing feedback.
+
+## 4. Valid Login And Reload
+
+Automated check:
+
+```text
+valid login reaches dashboard and survives reload
+```
+
+What it does:
+
+- Logs in with `Admin` / `admin123`.
+- Expects the Dashboard URL and heading.
+- Reloads the page.
+- Expects the Dashboard heading to remain visible.
+
+What to watch manually:
+
+- Does valid login reach the dashboard?
+- Does the dashboard remain available after reload?
+- Do failed browser requests appear during reload?
+
+Evidence meaning:
+
+- Login establishes a usable browser session. Some reload-interrupted dashboard requests have appeared as `net::ERR_ABORTED`; we currently treat those as reload noise unless deeper dashboard testing proves otherwise.
+
+## 5. Direct Dashboard Access While Logged Out
+
+Automated check:
+
+```text
+logged-out user is redirected away from dashboard
+```
+
+What it does:
+
+- Opens the dashboard URL without first logging in.
+- Expects redirect to the login page.
+- Expects the login heading.
+
+What to watch manually:
+
+- Does the protected page fail closed?
+- Does the user land somewhere understandable?
+
+Evidence meaning:
+
+- The dashboard is not directly accessible without a session in this browser context.
+
+## 6. Logout Clears Dashboard Access
+
+Automated check:
+
+```text
+logout removes dashboard access in the same browser context
+```
+
+What it does:
+
+- Logs in.
+- Opens the user dropdown.
+- Clicks Logout.
+- Tries to open the dashboard URL again.
+- Expects redirect to login.
+
+What to watch manually:
+
+- Does the user menu appear?
+- Does Logout return to login?
+- Does direct dashboard access fail after logout?
+
+Evidence meaning:
+
+- Logout appears to terminate dashboard access in the same browser context.
+
+## 7. Password Reset Page Controls
+
+Automated check:
+
+```text
+reset page exposes basic recovery controls
+```
+
+What it does:
+
+- Opens the password reset page.
+- Checks explanatory text.
+- Checks username input.
+- Checks Cancel.
+- Checks Reset Password.
+
+What to watch manually:
+
+- Is the recovery flow understandable?
+- Are the controls visible and named clearly?
+
+Evidence meaning:
+
+- The recovery page is available and has the expected basic controls.
+
+## 8. Blank Password Reset
+
+Automated check:
+
+```text
+blank reset submission explains required username locally
+```
+
+What it does:
+
+- Opens the reset page.
+- Clicks Reset Password with an empty username.
+- Expects `Required`.
+- Expects to remain on the reset page.
+
+What to watch manually:
+
+- Does the user get field-level feedback?
+- Does the app avoid submitting an empty reset request?
+
+Evidence meaning:
+
+- Missing recovery identity is blocked locally and explained.
+
+## 9. Unknown Username Password Reset
+
+Automated check:
+
+```text
+unknown username receives generic reset-sent feedback
+```
+
+What it does:
+
+- Opens the reset page.
+- Enters `not-a-user`.
+- Clicks Reset Password.
+- Expects a generic reset-sent success page.
+
+What to watch manually:
+
+- Does the feedback reveal whether the account exists?
+- Does the page give a useful next step?
+
+Evidence meaning:
+
+- The unknown username path appears privacy-preserving because it does not obviously reveal account existence.
+
+## 10. Cancel Password Reset
+
+Automated check:
+
+```text
+cancel returns from reset page to login page
+```
+
+What it does:
+
+- Opens the reset page.
+- Clicks Cancel.
+- Expects return to the login page.
+
+What to watch manually:
+
+- Can the user recover from the reset flow?
+- Does Cancel return to the expected place?
+
+Evidence meaning:
+
+- The reset flow has a simple escape path back to login.
